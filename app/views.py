@@ -6,8 +6,11 @@ import settings
 
 from app import app
 
+import scriptz.contourz
+from scriptz.contourz import main
 
 import os
+
 
 @app.route('/error')
 def error():
@@ -32,8 +35,10 @@ def file():
             except:
                 pass
             
+            contourList = contourz()
+
             file.save(os.path.join(settings.UPLOAD_FOLDER, fileName))
-            return render_template("pitchfinder.html")
+            return render_template("pitchfinder.html",contourList=contourList)
            
     return render_template("fileopen.html")
 
@@ -41,3 +46,7 @@ def file():
 def filereturn():
     return send_file('uploads/vizualizr.file',cache_timeout=1)
 
+@app.route('/contourz')
+def contourz():
+    # call main() in scriptz.contourz
+    return main()

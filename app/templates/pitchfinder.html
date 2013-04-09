@@ -23,160 +23,187 @@
 
 
 <script>
-			// the main three.js components
-			var camera, scene, renderer, pointLight
+	// the main three.js components
+	var camera, scene, renderer, pointLight
 
-			// to keep track of the mouse position
-				mouseX = 0, mouseY = 0,
+	// to keep track of the mouse position
+		mouseX = 0, mouseY = 0,
 
-			// an array to store our particles in
-				particles = [];
+	// an array to store our particles in
+		particles = [];
 
-			// let's get going! 
-			init();
-        
-			function init() {
+	// let's get going! 
+	init();
 
-				// Camera params : 
-				// field of view, aspect ratio for render output, near and far clipping plane. 
-				camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 4000 );
+	function init() {
 
-				// move the camera backwards so we can see stuff! 
-				// default position is 0,0,0. 
-				camera.position.z = 1000;
+		// Camera params : 
+		// field of view, aspect ratio for render output, near and far clipping plane. 
+		camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 4000 );
 
-				// the scene contains all the 3D object data
-				scene = new THREE.Scene();
+		// move the camera backwards so we can see stuff! 
+		// default position is 0,0,0. 
+		camera.position.z = 1000;
 
-				// camera needs to go in the scene 
-				scene.add(camera, pointLight);
+		// the scene contains all the 3D object data
+		scene = new THREE.Scene();
 
-				// and the CanvasRenderer figures out what the 
-				// stuff in the scene looks like and draws it!
+		// camera needs to go in the scene 
+		scene.add(camera, pointLight);
 
-				renderer = new THREE.CanvasRenderer();
-				renderer.setSize( window.innerWidth, window.innerHeight );
+		// and the CanvasRenderer figures out what the 
+		// stuff in the scene looks like and draws it!
 
-				// the renderer's canvas domElement is added to the body
-				document.body.appendChild( renderer.domElement );
+		renderer = new THREE.CanvasRenderer();
+		renderer.setSize( window.innerWidth, window.innerHeight );
 
-				makeParticles(); 
+		// the renderer's canvas domElement is added to the body
+		document.body.appendChild( renderer.domElement );
 
-				// add the mouse move listener
-				document.addEventListener( 'mousemove', onMouseMove, false );
+		makeParticles(); 
 
-				// render 30 times a second (should also look 
-				// at requestAnimationFrame) 
-				setInterval(update,1000/5); 
+		// add the mouse move listener
+		document.addEventListener( 'mousemove', onMouseMove, false );
 
-			}
+		// render 30 times a second (should also look 
+		// at requestAnimationFrame) 
+		setInterval(update,1000/5); 
 
-			// the main update function, called 30 times a second
+	}
 
-			function update() {
+	// the main update function, called 30 times a second
 
-				updateParticles();
-				var pitchd = parseFloat(document.getElementById('pitch').innerHTML);   
-                var note = document.getElementById('note').innerHTML;
-                var detune = document.getElementById('detune_amt').innerHTML;
-                colorz = '#'+Math.floor(Math.random()*16777215).toString(16);
-              
-                // ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+	function update() {
 
-				// and render the scene from the perspective of the camera
-				renderer.render( scene, camera);
+		updateParticles();
+		var pitchd = parseFloat(document.getElementById('pitch').innerHTML);   
+	    var note = document.getElementById('note').innerHTML;
+	    var detune = document.getElementById('detune_amt').innerHTML;
+	    colorz = '#'+Math.floor(Math.random()*16777215).toString(16);
+	  
+	    // ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-			}
+		// and render the scene from the perspective of the camera
+		renderer.render( scene, camera);
 
-			// creates a random field of Particle objects
+	}
 
-			function makeParticles() { 
+	// creates a random field of Particle objects
 
-				var particle, material; 
+	function makeParticles() { 
 
-				// we're gonna move from z position -1000 (far away) 
-				// to 1000 (where the camera is) and add a random particle at every pos. 
-				for ( var zpos= -1000; zpos < 1000; zpos+=20 ) {
+		var particle, material; 
 
-					// we make a particle material and pass through the 
-					// colour and custom particle render function we defined. 
-					colorz = '#'+Math.floor(Math.random()*16777215).toString(16);
+		// we're gonna move from z position -1000 (far away) 
+		// to 1000 (where the camera is) and add a random particle at every pos. 
+		for ( var zpos= -1000; zpos < 1000; zpos+=20 ) {
 
-     				material = new THREE.ParticleCanvasMaterial( { color: colorz, program: particleRender } );
-					// make the particle
-					particle = new THREE.Particle(material);
+			// we make a particle material and pass through the 
+			// colour and custom particle render function we defined. 
+			colorz = '#'+Math.floor(Math.random()*16777215).toString(16);
 
-					// give it a random x and y position between -500 and 500
-					particle.position.x = Math.random() * 1000 - 500;
-					particle.position.y = Math.random() * 1000 - 500;
+				material = new THREE.ParticleCanvasMaterial( { color: colorz, program: particleRender } );
+			// make the particle
+			particle = new THREE.Particle(material);
 
-					// set its z position
-					particle.position.z = zpos;
+			// give it a random x and y position between -500 and 500
+			particle.position.x = Math.random() * 1000 - 500;
+			particle.position.y = Math.random() * 1000 - 500;
 
-					// scale it up a bit
-					particle.scale.x = particle.scale.y = 280; //controls size of circle
+			// set its z position
+			particle.position.z = zpos;
 
-					// add it to the scene
-					scene.add( particle );
+			// scale it up a bit
+			particle.scale.x = particle.scale.y = 280; //controls size of circle
 
-					// and to the array of particles. 
-					particles.push(particle); 
+			// add it to the scene
+			scene.add( particle );
 
-				}
+			// and to the array of particles. 
+			particles.push(particle); 
 
-			}
+		}
 
-			// there isn't a built in circle particle renderer 
-			// so we have to define our own. 
+	}
 
-			function particleRender( context ) {
+	// there isn't a built in circle particle renderer 
+	// so we have to define our own. 
 
-				// we get passed a reference to the canvas context
-				context.beginPath();
-				// and we just have to draw our shape at 0,0 - in this
-				// case an arc from 0 to 2Pi radians or 360º - a full circle!
-				context.arc( 0, 0, 1, 0,  Math.PI * 2, true );
-				context.fill();
-			};
+	function particleRender( context ) {
+
+		// we get passed a reference to the canvas context
+		context.beginPath();
+		// and we just have to draw our shape at 0,0 - in this
+		// case an arc from 0 to 2Pi radians or 360º - a full circle!
+		context.arc( 0, 0, 1, 0,  Math.PI * 2, true );
+		context.fill();
+	};
 
 
-			// moves all the particles dependent on mouse position
+	// moves all the particles dependent on mouse position
 
-			function updateParticles() { 
+	function updateParticles() { 
 
-				// iterate through every particle
-				for(var i=0; i<particles.length; i++) {
-                    
-	                //console.log(pitchd)
-	                //console.log(note);
-	                console.log(detune)
-                   
-                    if(note == "C#"){document.body.style.background = "#111111";}
-                    else{document.body.style.background = "#111111";}
-                   
-					particle = particles[i]; 
+		// iterate through every particle
+		for(var i=0; i<particles.length; i++) {
+	        
+	        //console.log(pitchd)
+	        //console.log(note);
+	        console.log(detune)
+	       
+	        if(note == "C#"){document.body.style.background = "#111111";}
+	        else{document.body.style.background = "#111111";}
+	       
+			particle = particles[i]; 
 
-                    particle.scale.x = particle.scale.y = mouseX * 0.1;
-					// and move it forward dependent on the mouseY position. 
-					particle.position.z +=  mouseY * 0.1;
+	        particle.scale.x = particle.scale.y = mouseX * 0.1;
+			// and move it forward dependent on the mouseY position. 
+			particle.position.z +=  mouseY * 0.1;
 
-					// if the particle is too close move it to the back
-					if(particle.position.z>1000) particle.position.z-=2000; 
+			// if the particle is too close move it to the back
+			if(particle.position.z>1000) particle.position.z-=2000; 
 
-				}
+		}
 
-			}
+	}
 
-		// called when the mouse moves
-			function onMouseMove( event ) {
-				// store the mouseX and mouseY position 
-				mouseX = event.clientX;
-				mouseY = event.clientY;
+	// called when the mouse moves
+	function onMouseMove( event ) {
+		// store the mouseX and mouseY position 
+		mouseX = event.clientX;
+		mouseY = event.clientY;
 
-			}
+	}
+
+
+</script>
+
+
+<!-- start contours -->
+<canvas id="contours" width="675" height="675" style="border: 1px solid #ccc; position: absolute; left: 0;"></canvas>
+
+<script>
+
+	function drawContours() {
+		context = document.getElementById( "contours" ).getContext( "2d" );
 		
+		context.fillStyle = "red";
 
-			</script>
+		context.beginPath();
+
+		{% for contour in contourList %}
+		
+		context.lineTo({{contour[0][0]}},{{contour[0][1]}});
+		
+		{% endfor %}
+
+		context.fill();
+	}
+
+	drawContours();
+
+</script>
+<!-- end contours -->
 
 
 </body>
