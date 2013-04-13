@@ -1,210 +1,335 @@
 <!doctype html>
 <html>
+
 <head>
-<title>Vizualizr</title>
-<link href='http://fonts.googleapis.com/css?family=Alike' rel='stylesheet' type='text/css'>
-<link href='../static/css/bootstrap.css' rel='stylesheet' type='text/css'>
-<link href='../static/css/styles.css' rel='stylesheet' type='text/css'>
-<script src="../static/js/pitchdetector.js"></script>
-<script src="../static/js/three.js"></script>
+	<title>Vizualizr</title>
 
+	<link href="http://fonts.googleapis.com/css?family=Alike" rel="stylesheet" type="text/css">
+	<link href="/static/css/bootstrap.css" rel="stylesheet" type="text/css">
+	<link href="/static/css/styles.css" rel="stylesheet" type="text/css">
+
+	<script src="/static/js/pitchdetector.js"></script>
+	<script src="/static/js/three.js"></script>
+
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.js"></script>
 </head>
+
 <body>
-<button onclick="this.innerText = togglePlayback()">use demo audio</button>
-<button onclick="toggleLiveInput()">use live input</button>
-<!--<button onclick="updatePitch(0);">sample</button>-->
+
+	<button onclick="this.innerText = togglePlayback()">use demo audio</button>
+	<button onclick="toggleLiveInput()">use live input</button>
+
+	<div id="detector" class="vague">
+		<div class="pitch"><span id="pitch" onChange="function2(this)">--</span>Hz</div>
+		<div class="note"><span id="note">--</span></div>   
+		<div id="detune"><span id="detune_amt">--</span><span id="flat">cents &#9837;</span><span id="sharp">cents &#9839;</span>
+	</div>
+
+	<div id="result"></div>
+
+	<!-- start contours -->
+	<canvas id="contours" width="675" height="675" style="border: 1px solid #333; background-color: transparent; position: absolute; left: 0;z-index: 2;"></canvas>
+	<!-- end contours -->
+
+	<img src="../static/images/user/moon.jpg" width="675" height="675" style="position: absolute;left: 0;" />
 
 
-<div id="detector" class="vague">
-<canvas id="output"></canvas>
-<div class="pitch"><span id="pitch" onChange="function2(this)">--</span>Hz</div>
-<div class="note"><span id="note">--</span></div>   
-<div id="detune"><span id="detune_amt">--</span><span id="flat">cents &#9837;</span><span id="sharp">cents &#9839;</span></div>
+	<script>
+
+		$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+
+		$(window).load(function() {
 
 
-<script>
-	// the main three.js components
-	var camera, scene, renderer, pointLight
-
-	// to keep track of the mouse position
-		mouseX = 0, mouseY = 0,
-
-	// an array to store our particles in
-		particles = [];
-
-	// let's get going! 
-	init();
-
-	function init() {
-
-		// Camera params : 
-		// field of view, aspect ratio for render output, near and far clipping plane. 
-		camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 4000 );
-
-		// move the camera backwards so we can see stuff! 
-		// default position is 0,0,0. 
-		camera.position.z = 1000;
-
-		// the scene contains all the 3D object data
-		scene = new THREE.Scene();
-
-		// camera needs to go in the scene 
-		scene.add(camera, pointLight);
-
-		// and the CanvasRenderer figures out what the 
-		// stuff in the scene looks like and draws it!
-
-		renderer = new THREE.CanvasRenderer();
-		renderer.setSize( window.innerWidth, window.innerHeight );
-
-		// the renderer's canvas domElement is added to the body
-		document.body.appendChild( renderer.domElement );
-
-		makeParticles(); 
-
-		// add the mouse move listener
-		document.addEventListener( 'mousemove', onMouseMove, false );
-
-		// render 30 times a second (should also look 
-		// at requestAnimationFrame) 
-		setInterval(update,1000/5); 
-
-	}
-
-	// the main update function, called 30 times a second
-
-	function update() {
-
-		updateParticles();
-		var pitchd = parseFloat(document.getElementById('pitch').innerHTML);   
-	    var note = document.getElementById('note').innerHTML;
-	    var detune = document.getElementById('detune_amt').innerHTML;
-	    colorz = '#'+Math.floor(Math.random()*16777215).toString(16);
-	  
-	    // ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-
-		// and render the scene from the perspective of the camera
-		renderer.render( scene, camera);
-
-	}
-
-	// creates a random field of Particle objects
-
-	function makeParticles() { 
-
-		var particle, material; 
-
-		// we're gonna move from z position -1000 (far away) 
-		// to 1000 (where the camera is) and add a random particle at every pos. 
-		for ( var zpos= -1000; zpos < 1000; zpos+=20 ) {
-
-			// we make a particle material and pass through the 
-			// colour and custom particle render function we defined. 
-			colorz = '#'+Math.floor(Math.random()*16777215).toString(16);
-
-				material = new THREE.ParticleCanvasMaterial( { color: colorz, program: particleRender } );
-			// make the particle
-			particle = new THREE.Particle(material);
-
-			// give it a random x and y position between -500 and 500
-			particle.position.x = Math.random() * 1000 - 500;
-			particle.position.y = Math.random() * 1000 - 500;
-
-			// set its z position
-			particle.position.z = zpos;
-
-			// scale it up a bit
-			particle.scale.x = particle.scale.y = 280; //controls size of circle
-
-			// add it to the scene
-			scene.add( particle );
-
-			// and to the array of particles. 
-			particles.push(particle); 
-
-		}
-
-	}
-
-	// there isn't a built in circle particle renderer 
-	// so we have to define our own. 
-
-	function particleRender( context ) {
-
-		// we get passed a reference to the canvas context
-		context.beginPath();
-		// and we just have to draw our shape at 0,0 - in this
-		// case an arc from 0 to 2Pi radians or 360º - a full circle!
-		context.arc( 0, 0, 1, 0,  Math.PI * 2, true );
-		context.fill();
-	};
+// GENERAL TO-DOS - 
+//		Have user choose whether they want to upload a file or use streaming before prompting them to upload?
 
 
-	// moves all the particles dependent on mouse position
+			// Initialize globals
 
-	function updateParticles() { 
+			// Unset contourData for each page load
+			$.contourData = undefined;
+			// Initialize contourData object
+		    $.contourData = {};
+		    
+		    // Initialize audioData as an array
+		    $.audioData = [];
+		    // Set window size for analysis comparison
+		    $.audioWindowSize = 500;
+		    // Set threshold for color and image updates
+		    $.pitchThreshold = 500;
 
-		// iterate through every particle
-		for(var i=0; i<particles.length; i++) {
-	        
-	        //console.log(pitchd)
-	        //console.log(note);
-	        console.log(detune)
-	       
-	        if(note == "C#"){document.body.style.background = "#111111";}
-	        else{document.body.style.background = "#111111";}
-	       
-			particle = particles[i]; 
-
-	        particle.scale.x = particle.scale.y = mouseX * 0.1;
-			// and move it forward dependent on the mouseY position. 
-			particle.position.z +=  mouseY * 0.1;
-
-			// if the particle is too close move it to the back
-			if(particle.position.z>1000) particle.position.z-=2000; 
-
-		}
-
-	}
-
-	// called when the mouse moves
-	function onMouseMove( event ) {
-		// store the mouseX and mouseY position 
-		mouseX = event.clientX;
-		mouseY = event.clientY;
-
-	}
+// TO-DO - set loading image that is replace once init() is called
 
 
-</script>
+			/*
+			 * Get contours from Python
+			 */
+			function getContourArray() {	
+				$.ajax({
+		            type: "GET",
+		            url: $SCRIPT_ROOT + "/upload",
+		            data: { processContours: 1 },
+		            contentType: "application/json; charset=utf-8",
+		           	success: function( allContourData ) {
+		            	
+		            	allContourData = jQuery.parseJSON( allContourData );
+		            	
+		            	// Set contour data to global $.contourData.contourArray
+		            	setContourArray( allContourData );
+		            	
+		            	beginProcessing();
+
+		            }
+		        }); 
+
+		    	return false;
+			}
 
 
-<!-- start contours -->
-<canvas id="contours" width="675" height="675" style="border: 1px solid #ccc; position: absolute; left: 0;"></canvas>
+			/**
+			 * Add contours to globals
+			 */
+			function setContourArray( allContourData ) {
+				// All contour data
+				$.contourData.contourArray = allContourData;
+				// Sets which contour should be rendered, constantly updated as the audio plays
+				$.contourData.currentContour = 0;
+			}
 
-<script>
+			
+			getContourArray();
 
-	function drawContours() {
-		context = document.getElementById( "contours" ).getContext( "2d" );
-		
-		context.fillStyle = "red";
 
-		context.beginPath();
+			function beginProcessing() {
+			
+				// Let's get going! 
+				init();
 
-		{% for contour in contourList %}
-		
-		context.lineTo({{contour[0][0]}},{{contour[0][1]}});
-		
-		{% endfor %}
 
-		context.fill();
-	}
+				function init() {
+// TO-DO - hide the loading image
+					// render 30 times a second (should also look 
+					// at requestAnimationFrame) 
+					setInterval(update,1000/5); //1000/5
 
-	drawContours();
+				}
 
-</script>
-<!-- end contours -->
 
+				/**
+				 * Update contours and colors
+				 *
+				 * Store pitch audio data for ongoing analysis
+				 */
+				function update() {
+					
+					// If audio pitch is above the threshold
+					if(analyzeAudio() > 0) {
+
+						// Draw contours on top of image
+						// drawContours();
+
+					}
+
+// TO-DO - only call drawContours(); within the conditional above once the audio thesholding is finalized
+					drawContours();
+
+				}
+
+
+				/**
+				 * Returns a random integer between min and max
+				 */
+				function getRandomInt (min, max) {
+
+				    return Math.floor( Math.random() * (max - min + 1) ) + min;
+
+				}
+
+				/**
+				 * Returns contours of new image
+				 */
+				function updateImage() {
+// TO-DO - pull in next user image and increment count to keep track of which image is being used
+				}
+
+				/**
+				 * Returns an rgba(0,0,0,0) string based on pitch and note values of audio
+				 */
+				function updateColor() {
+					
+					// Get pitch value
+					var pitch = document.getElementById('pitch').innerHTML;
+
+
+					// Get note value
+					var note = document.getElementById('note').innerHTML;
+
+
+					// Set color temperature based on pitch
+					colorTemp = 'cool';
+// TO-DO - need to dynamically set pitch threshold, instead of using static 500 $.pitchThreshold
+					if(pitch > $.pitchThreshold) colorTemp = 'warm';
+
+
+					// Set color based on temperature
+					if(colorTemp == 'warm') {
+						// Generate warm color
+						// red 		255,0,0
+						// orange 	255,165,0
+						// yellow 	255,255,0
+						colorR = getRandomInt( 205, 255 );
+						colorG = getRandomInt( 0, 255 );
+						colorB = 0;
+					
+					} else {
+						// Generate cool color
+						// blue 	0,0,255
+						// green 	0,128,0 
+						// lime  	0,255,0 
+						// purple 	128,0,128
+						// magenta 	255,0,255
+						colorR = 0;
+						colorG = getRandomInt( 0, 255 );
+						colorB = getRandomInt( 205, 255 );
+					}
+
+
+					// Set opacity
+					opacity = 0.28;
+
+					switch(note) {
+						case "A":
+						case "A#":
+							opacity = 0.84;
+						break;
+						case "B":
+							opacity = 0.98;
+						break;
+						case "C":
+						case "C#":
+							opacity = 0.14;
+						break;
+						case "D":
+						case "D#":
+							opacity = 0.28;
+						break;
+						case "E":
+						case "E#":
+							opacity = 0.42;
+						break;
+						case "F":
+						case "F#":
+							opacity = 0.56;
+						break;
+						case "G":
+						case "G#":
+							opacity = 0.70;
+						break;
+					}
+
+
+					return "rgba("+colorR+","+colorG+","+colorB+","+opacity+")";
+		        
+		        }
+
+
+		        /**
+		         * Increment current contour being used
+		         */
+		        function setNextContour() {
+
+		        	var random = true;
+
+		        	contourLength = $.contourData.contourArray[0].length - 1;
+
+					if(random) {
+						$.contourData.currentContour = getRandomInt( 0, contourLength );
+					} else if($.contourData.currentContour < contourLength) {
+						$.contourData.currentContour++;
+					} else {
+						$.contourData.currentContour = 0;
+					}
+
+		        }
+
+
+		        /**
+		         * Draw contours in canvas
+		         */
+				function drawContours() {
+					
+					canvas = document.getElementById( "contours" );
+					context = canvas.getContext( "2d" );
+					
+					// Clear all contours in context
+					//canvas.innerHTML = '';
+					context.clearRect(0, 0, canvas.width, canvas.height);
+
+					// Set fill color
+					context.fillStyle = updateColor();
+
+					context.beginPath();
+
+					thisContour = $.contourData.contourArray[0][$.contourData.currentContour]["py/numpy.ndarray"]["values"];
+
+					for (var i = 0; i < thisContour.length; i++) {
+						context.lineTo(thisContour[i][0][0],thisContour[i][0][1]);
+					};
+
+					context.fill();
+
+					setNextContour();
+				}
+
+				//drawContours();
+
+
+				/**
+		         * Analyse a window of audio data
+		         */
+				function analyzeAudio() {
+
+					$.audioData.push(document.getElementById('pitch').innerHTML);
+
+					var sum = 0;
+					var audioInt = 0;
+					var audioOutInt = 0;
+
+					for(i = 0; i <= $.audioWindowSize; i++) {
+				       
+						audioInt = parseInt($.audioData[ $.audioData.length - i ]);//$.audioData.length - 
+				        if(audioInt > 0) {
+				        
+// TO-DO - Unset data that is out of range
+				        	//audioOutInt = parseInt($.audioData[ $.audioData.length - i ]);
+				        	//if(audioOutInt < 1) { audioOutInt = 0; }
+				        	//sum -= audioOutInt;
+				            
+				            // Set data that is in range
+				            sum += audioInt;
+				        }
+
+				    }
+
+
+					var audioWindowAverage  = sum / $.audioWindowSize;
+
+					//console.log(audioWindowAverage);
+
+					if(audioWindowAverage > $.pitchThreshold) {
+						return 1;
+					}
+
+					return 0;
+				}
+
+
+			}
+
+		});
+
+	</script>
 
 </body>
 </html>

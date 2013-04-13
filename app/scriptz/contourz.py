@@ -484,12 +484,18 @@ def setFreqThreshold():
 
 ### main file -------------------------------------------------------
 
-def main():
+def returnContourz():
 	# cv2.namedWindow( "Display window" )
 
 	processGeometricImages()
 
-	return getNextContour()
+	global geometricImageData
+
+	return geometricImageData
+	#return getNextContour()
+
+
+
 
 	# initialize list
 	audioMetricsList = []
