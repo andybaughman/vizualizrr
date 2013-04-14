@@ -55,7 +55,8 @@ def file():
                 pass
 
             file.save(os.path.join(settings.UPLOAD_FOLDER, fileName))
-            return render_template("pitchfinder.html") #,contourList=contourList[0][1] #map(json.dumps,contourList) #json.dumps([1,2,3])
+            return render_template("pitchfinder.html") 
+            #,contourList=contourList[0][1] #map(json.dumps,contourList) #json.dumps([1,2,3])
            
     return render_template("fileopen.html")
 

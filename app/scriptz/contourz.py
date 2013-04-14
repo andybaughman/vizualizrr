@@ -492,7 +492,26 @@ def returnContourz():
 	global geometricImageData
 
 	return geometricImageData
+	
 	#return getNextContour()
+
+
+
+def returnImagz(cnt):
+
+	# Get first two images
+	# First image to use
+	imNow = loadUserImage()
+	# Second image to transition to
+	imNext = loadUserImage()
+
+	#cnt = getNextContour()
+
+	mask = np.zeros(imNow.shape, np.uint8)
+
+	cv2.drawContours(mask, [cnt], 0, 255, -1) 
+
+	return imageTransition(mask, imNext, imNow)
 
 
 

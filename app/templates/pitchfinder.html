@@ -27,11 +27,11 @@
 
 	<div id="result"></div>
 
-	<!-- start contours -->
-	<canvas id="contours" width="675" height="675" style="border: 1px solid #333; background-color: transparent; position: absolute; left: 0;z-index: 2;"></canvas>
-	<!-- end contours -->
+	<canvas id="contours" width="675" height="675" style="border: 1px solid #333; background-color: transparent; position: absolute; left: 0;z-index: 3;"></canvas>
 
-	<img src="../static/images/user/moon.jpg" width="675" height="675" style="position: absolute;left: 0;" />
+	<canvas id="images" width="675" height="675" style="border: 1px solid #333; background-color: transparent; position: absolute; left: 0;z-index: 2;"></canvas>
+
+	<img src="../static/images/user/moon.jpg" width="675" height="675" style="position: absolute;left: 0;" id="userImage" />
 
 
 	<script>
@@ -55,9 +55,16 @@
 		    // Initialize audioData as an array
 		    $.audioData = [];
 		    // Set window size for analysis comparison
-		    $.audioWindowSize = 500;
+		    $.audioWindowSize = 10;
 		    // Set threshold for color and image updates
 		    $.pitchThreshold = 500;
+
+		    // Set canvas/contexts
+		    $.contourCanvas = document.getElementById( "contours" );
+			$.contourContext = $.contourCanvas.getContext( "2d" );
+
+			$.imageCanvas = document.getElementById( "images" );
+            $.imageContext = $.imageCanvas.getContext( "2d" );
 
 // TO-DO - set loading image that is replace once init() is called
 
@@ -95,6 +102,7 @@
 				$.contourData.contourArray = allContourData;
 				// Sets which contour should be rendered, constantly updated as the audio plays
 				$.contourData.currentContour = 0;
+				$.contourData.contoursInPlace = 0;
 			}
 
 			
@@ -108,6 +116,7 @@
 
 
 				function init() {
+
 // TO-DO - hide the loading image
 					// render 30 times a second (should also look 
 					// at requestAnimationFrame) 
@@ -123,16 +132,19 @@
 				 */
 				function update() {
 					
-					// If audio pitch is above the threshold
-					if(analyzeAudio() > 0) {
+	            	// Get next user image
+// TO-DO - get all user images dynamically - set first to img in dom, save second+ in userImages object
+		            var img1 = new Image();
+		            img1.src = "http://127.0.0.1:5000/static/images/user/sun.jpg";
 
-						// Draw contours on top of image
-						// drawContours();
+		            img1.onload = function(){
+
+// TO-DO - only call drawContours(); within the conditional above once the audio thesholding is finalized ?
+						drawContours();
+
+						clipImage(img1);
 
 					}
-
-// TO-DO - only call drawContours(); within the conditional above once the audio thesholding is finalized
-					drawContours();
 
 				}
 
@@ -146,12 +158,14 @@
 
 				}
 
+
 				/**
 				 * Returns contours of new image
 				 */
 				function updateImage() {
 // TO-DO - pull in next user image and increment count to keep track of which image is being used
 				}
+
 
 				/**
 				 * Returns an rgba(0,0,0,0) string based on pitch and note values of audio
@@ -161,17 +175,15 @@
 					// Get pitch value
 					var pitch = document.getElementById('pitch').innerHTML;
 
-
 					// Get note value
 					var note = document.getElementById('note').innerHTML;
 
-
 					// Set color temperature based on pitch
 					colorTemp = 'cool';
-// TO-DO - need to dynamically set pitch threshold, instead of using static 500 $.pitchThreshold
+// TO-DO - need to dynamically set pitch threshold, instead of using static 500 $.pitchThreshold ?
 					if(pitch > $.pitchThreshold) colorTemp = 'warm';
 
-
+// TO-DO - set color values based on colors within next (second, third, fourth, etc) image using Python?
 					// Set color based on temperature
 					if(colorTemp == 'warm') {
 						// Generate warm color
@@ -202,32 +214,40 @@
 						case "A":
 						case "A#":
 							opacity = 0.84;
+							$.contourData.currentContour = 0;
 						break;
 						case "B":
 							opacity = 0.98;
+							$.contourData.currentContour = 1;
 						break;
 						case "C":
 						case "C#":
 							opacity = 0.14;
+							$.contourData.currentContour = 2;
 						break;
 						case "D":
 						case "D#":
 							opacity = 0.28;
+							$.contourData.currentContour = 3;
 						break;
 						case "E":
 						case "E#":
 							opacity = 0.42;
+							$.contourData.currentContour = 4;
 						break;
 						case "F":
 						case "F#":
 							opacity = 0.56;
+							$.contourData.currentContour = 5;
 						break;
 						case "G":
 						case "G#":
 							opacity = 0.70;
+							$.contourData.currentContour = 6;
 						break;
 					}
 
+					$.contourData.contoursInPlace++;
 
 					return "rgba("+colorR+","+colorG+","+colorB+","+opacity+")";
 		        
@@ -239,16 +259,14 @@
 		         */
 		        function setNextContour() {
 
-		        	var random = true;
+					if($.contourData.contoursInPlace >= ($.contourData.contourArray[0].length * 1.25)) {
+						
+						// Reset contour
+						$.contourData.contoursInPlace = 0;
 
-		        	contourLength = $.contourData.contourArray[0].length - 1;
-
-					if(random) {
-						$.contourData.currentContour = getRandomInt( 0, contourLength );
-					} else if($.contourData.currentContour < contourLength) {
-						$.contourData.currentContour++;
-					} else {
-						$.contourData.currentContour = 0;
+						// Clear all contours in context
+						$.contourContext.clearRect(0, 0, $.contourCanvas.width, $.contourCanvas.height);
+						$.imageContext.clearRect(0, 0, $.imageCanvas.width, $.imageCanvas.height);
 					}
 
 		        }
@@ -259,13 +277,8 @@
 		         */
 				function drawContours() {
 					
-					canvas = document.getElementById( "contours" );
-					context = canvas.getContext( "2d" );
+					context = $.contourContext;
 					
-					// Clear all contours in context
-					//canvas.innerHTML = '';
-					context.clearRect(0, 0, canvas.width, canvas.height);
-
 					// Set fill color
 					context.fillStyle = updateColor();
 
@@ -282,48 +295,38 @@
 					setNextContour();
 				}
 
-				//drawContours();
-
 
 				/**
-		         * Analyse a window of audio data
+		         * Draw contours of one image on another
 		         */
-				function analyzeAudio() {
+				function clipImage(img1) {
 
-					$.audioData.push(document.getElementById('pitch').innerHTML);
+					var testContour = getRandomInt( 0, 6 );
 
-					var sum = 0;
-					var audioInt = 0;
-					var audioOutInt = 0;
+                	$.imageContext.save();
 
-					for(i = 0; i <= $.audioWindowSize; i++) {
-				       
-						audioInt = parseInt($.audioData[ $.audioData.length - i ]);//$.audioData.length - 
-				        if(audioInt > 0) {
-				        
-// TO-DO - Unset data that is out of range
-				        	//audioOutInt = parseInt($.audioData[ $.audioData.length - i ]);
-				        	//if(audioOutInt < 1) { audioOutInt = 0; }
-				        	//sum -= audioOutInt;
-				            
-				            // Set data that is in range
-				            sum += audioInt;
-				        }
+                    $.imageContext.beginPath();
 
-				    }
+                    // Create mask with contour
+                    thisContour = $.contourData.contourArray[0][testContour]["py/numpy.ndarray"]["values"];
 
+					for (var i = 0; i < thisContour.length; i++) {
+						$.imageContext.lineTo(thisContour[i][0][0],thisContour[i][0][1]);
+					};
 
-					var audioWindowAverage  = sum / $.audioWindowSize;
+					$.imageContext.closePath();
+                    
+                    // Apply mask
+                    $.imageContext.clip();
+                    
+                    // Display portion of new image
+                    $.imageContext.drawImage(img1,0,0);
 
-					//console.log(audioWindowAverage);
+                    // Restore context to original state
+                    // This allows multiple contours to be drawn
+                    $.imageContext.restore();
 
-					if(audioWindowAverage > $.pitchThreshold) {
-						return 1;
-					}
-
-					return 0;
-				}
-
+	        	}
 
 			}
 
