@@ -33,7 +33,9 @@ def file():
    
     # Ajax call for contours
     if request.method == 'GET':
-
+#
+# TO-DO - resize user supplied images
+#
         processContours = request.args.get('processContours')
         
         if processContours:
