@@ -1,140 +1,422 @@
-			// the main three.js components
-			var camera, scene, renderer,
+$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
 
-			// to keep track of the mouse position
-				mouseX = 0, mouseY = 0,
+		$(window).load(function() {
 
-			// an array to store our particles in
-				particles = [];
 
-			// let's get going! 
-			init();
-        
-			function init() {
+// GENERAL TO-DOS - 
+//		Have user choose whether they want to upload a file or use streaming before prompting them to upload?
 
-				// Camera params : 
-				// field of view, aspect ratio for render output, near and far clipping plane. 
-				camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 4000 );
 
-				// move the camera backwards so we can see stuff! 
-				// default position is 0,0,0. 
-				camera.position.z = 1000;
+			// Initialize globals
 
-				// the scene contains all the 3D object data
-				scene = new THREE.Scene();
+			// Unset contourData for each page load
+			$.contourData = undefined;
+			// Initialize contourData object
+		    $.contourData = {};
+		    
+		    // Initialize audioData as an array
+		    $.audioData = [];
+		    // Set window size for analysis comparison
+		    $.audioWindowSize = 10;
+		    // Set threshold for color and image updates
+		    $.pitchThreshold = 500;
 
-				// camera needs to go in the scene 
-				scene.add(camera);
+		    // Set canvas/contexts
+		    $.contourCanvas = document.getElementById( "contours" );
+			$.contourContext = $.contourCanvas.getContext( "2d" );
 
-				// and the CanvasRenderer figures out what the 
-				// stuff in the scene looks like and draws it!
+			$.imageCanvas = document.getElementById( "images" );
+            $.imageContext = $.imageCanvas.getContext( "2d" );
 
-				renderer = new THREE.CanvasRenderer();
-				renderer.setSize( window.innerWidth, window.innerHeight );
+            $.note = document.getElementById('note').innerHTML;
+            $.previousNote = "A";
 
-				// the renderer's canvas domElement is added to the body
-				document.body.appendChild( renderer.domElement );
+// TO-DO - set loading image that is replace once init() is called
 
-				makeParticles(); 
 
-				// add the mouse move listener
-				document.addEventListener( 'mousemove', onMouseMove, false );
+			/**
+			 * Get contours from Python
+			 */
+			function getContourArray() {	
 
-				// render 30 times a second (should also look 
-				// at requestAnimationFrame) 
-				setInterval(update,1000/5); 
+				$.ajax({
+		            type: "GET",
+		            url: $SCRIPT_ROOT + "/upload",
+		            data: { processContours: 1 },
+		            contentType: "application/json; charset=utf-8",
+		           	success: function( allContourData ) {
+		            	
+		            	allContourData = jQuery.parseJSON( allContourData );
+		            	
+		            	// Set contour data to global $.contourData.contourArray
+		            	setContourArray( allContourData );
+		            	
+		            	beginProcessing();
+
+		            }
+		        }); 
+
+		    	return false;
 
 			}
 
-			// the main update function, called 30 times a second
+			getContourArray();
 
-			function update() {
 
-				updateParticles();
+			/**
+			 * Add contours to globals
+			 */
+			function setContourArray( allContourData ) {
 
-				// and render the scene from the perspective of the camera
-				renderer.render( scene, camera );
+				// All contour data
+				$.contourData.contourArray = allContourData;
+				
+				// Sets which contour should be rendered, constantly updated as the audio plays
+				$.contourData.currentContour = 0;
+
+				// Number of contours that appear on the canvas
+				$.contourData.contoursInPlace = 0;
 
 			}
 
-			// creates a random field of Particle objects
+			$.contourData.imagesInPlace = 0;
 
-			function makeParticles() { 
+			function beginProcessing() {
+			
+				// Let's get going! 
+				init();
 
-				var particle, material; 
 
-				// we're gonna move from z position -1000 (far away) 
-				// to 1000 (where the camera is) and add a random particle at every pos. 
-				for ( var zpos= -1000; zpos < 1000; zpos+=20 ) {
+				function init() {
 
-					// we make a particle material and pass through the 
-					// colour and custom particle render function we defined. 
-					colorz = '#'+Math.floor(Math.random()*16777215).toString(16);
+// TO-DO - hide the loading image
+					// render 30 times a second (should also look 
+					// at requestAnimationFrame) 
+					setInterval(update,1000/5);
 
-	                var SPAN = document.getElementById('span_1');           
-     				material = new THREE.ParticleCanvasMaterial( { color: colorz, program: particleRender } );
-					// make the particle
-					particle = new THREE.Particle(material);
+				}
 
-					// give it a random x and y position between -500 and 500
-					particle.position.x = Math.random() * 1000 - 500;
-					particle.position.y = Math.random() * 1000 - 500;
 
-					// set its z position
-					particle.position.z = zpos;
+				/**
+				 * Update contours and colors
+				 *
+				 * Store pitch audio data for ongoing analysis
+				 */
+				function update() {
+					
+					// Is the app picking up audio?
+					// If so, has the note value changed since the last iteration?
+					if(
+						$.note !== '--' 
+						&& 
+						$.note !== '-' 
+						&& 
+						$.note !== $.previousNote
+					) {
 
-					// scale it up a bit
-					particle.scale.x = particle.scale.y = 280; //controls size of circle
+		            	// Get next user image
+	// TO-DO - get all user images dynamically - set first to img in dom, save second+ in userImages object
+			            var img = new Image();
+			            img.src = "http://127.0.0.1:5000/static/images/user/sun-large.jpg";
 
-					// add it to the scene
-					scene.add( particle );
+			            img.onload = function(){
 
-					// and to the array of particles. 
-					particles.push(particle); 
+							drawContour();
 
+							updateImage( img );
+
+						}
+					}
+
+				}
+
+
+				/**
+				 * Returns a random integer between min and max
+				 */
+				function getRandomInt (min, max) {
+
+				    return Math.floor( Math.random() * (max - min + 1) ) + min;
+
+				}
+
+
+				/**
+				 * Returns an rgba(0,0,0,0) string based on pitch and note values of audio
+				 */
+				function updateColor() {
+					
+					// Get pitch value
+					var pitch = document.getElementById('pitch').innerHTML;
+
+					// Set color temperature based on pitch
+					colorTemp = 'cool';
+// TO-DO - need to dynamically set pitch threshold, instead of using static 500 $.pitchThreshold ?
+					if(pitch > $.pitchThreshold) colorTemp = 'warm';
+
+// TO-DO - set color values based on colors within next (second, third, fourth, etc) image using Python or JS - getDominantColors() below?
+					// Set color based on temperature
+					if(colorTemp == 'warm') {
+						// Generate warm color
+						// red 		255,0,0
+						// orange 	255,165,0
+						// yellow 	255,255,0
+						colorR = getRandomInt( 205, 255 );
+						colorG = getRandomInt( 0, 255 );
+						colorB = 0;
+					
+					} else {
+						// Generate cool color
+						// blue 	0,0,255
+						// green 	0,128,0 
+						// lime  	0,255,0 
+						// purple 	128,0,128
+						// magenta 	255,0,255
+						colorR = 0;
+						colorG = getRandomInt( 0, 255 );
+						colorB = getRandomInt( 205, 255 );
+					}
+
+					$.previousNote = $.note;
+
+					// Set opacity and contour
+					opacity = 0.28;
+					switch($.note) {
+						case "A":
+						case "A#":
+							opacity = 0.84;
+						break;
+						case "B":
+							opacity = 0.98;
+						break;
+						case "C":
+						case "C#":
+							opacity = 0.14;
+						break;
+						case "D":
+						case "D#":
+							opacity = 0.28;
+						break;
+						case "E":
+						case "E#":
+							opacity = 0.42;
+						break;
+						case "F":
+						case "F#":
+							opacity = 0.56;
+						break;
+						case "G":
+						case "G#":
+							opacity = 0.70;
+						break;
+					}
+
+					return "rgba("+colorR+","+colorG+","+colorB+","+opacity+")";
+		        
+		        }
+
+
+		        /**
+		         * Draw contour on canvas
+		         */
+				function drawContour() {
+					
+					// Set fill color
+					$.contourContext.fillStyle = updateColor();
+
+					$.contourContext.beginPath();
+
+					// Get contour
+					thisContour = $.contourData.contourArray[0][$.contourData.currentContour]["py/numpy.ndarray"]["values"];
+
+					for (var i = 0; i < thisContour.length; i++) {
+						$.contourContext.lineTo(thisContour[i][0][0],thisContour[i][0][1]);
+					};
+
+					$.contourContext.fill();
+
+					// Set new contour for next time
+					setNextContour();
+
+				}
+
+
+		        /**
+		         * Increment current contour being used and how many are in place
+		         */
+		        function setNextContour() {
+
+					if($.contourData.contoursInPlace >= ($.contourData.contourArray[0].length * 1.25)) {
+						
+						// Reset contour
+						$.contourData.contoursInPlace = 0;
+
+						// Clear all contours in context
+						$.contourContext.clearRect(0, 0, $.contourCanvas.width, $.contourCanvas.height);
+
+					} else {
+
+						$.contourData.contoursInPlace++;
+
+					}
+
+					// Track the number of image updates made 
+					// Reset if necessary
+					if($.contourData.currentContour >= ($.contourData.contourArray[0].length - 1)) {
+
+                    	//$.contourData.imagesInPlace = 0;
+                    	$.contourData.currentContour = 0;
+                    
+                    } else {
+                    
+                    	//$.contourData.imagesInPlace++;
+                    	$.contourData.currentContour++;
+                    
+                    }
+
+		        }
+
+
+				/**
+		         * Draw contours of new image on existing 
+		         */
+				function updateImage( img ) {
+
+					if($.contourData.imagesInPlace < 1) {
+
+                    	$.imageContext.clearRect(0, 0, $.imageCanvas.width, $.imageCanvas.height);
+					
+					}
+
+					var contourLength = $.contourData.contourArray[0].length - 1;
+
+                	$.imageContext.save();
+
+                    $.imageContext.beginPath();
+
+                    // Create mask with contour
+                    thisContour = $.contourData.contourArray[0][$.contourData.imagesInPlace]["py/numpy.ndarray"]["values"];
+
+					for ( var i = 0; i < thisContour.length; i++ ) {
+						$.imageContext.lineTo(thisContour[i][0][0],thisContour[i][0][1]);
+					};
+
+					$.imageContext.closePath();
+                    
+                    // Apply mask
+                    $.imageContext.clip();
+                    
+                    // Display portion of new image
+                    $.imageContext.drawImage(img,0,0);
+
+                    // Restore context to original state
+                    // This allows multiple contours to be drawn
+                    $.imageContext.restore();
+
+
+					// Track the number of image updates made 
+					// Reset if necessary
+					if($.contourData.imagesInPlace >= contourLength) {
+
+                    	$.contourData.imagesInPlace = 0;
+                    
+                    } else {
+                    
+                    	$.contourData.imagesInPlace++
+                    
+                    }
+
+	        	}
+
+
+	        	/**
+		         * Iterate through pixels and get dominant colors from image
+		         */
+	        	function getDominantColors() {
+
+	        		var img = new Image();
+		            img.src = "http://127.0.0.1:5000/static/images/user/sun-large.jpg";
+
+		            //$.imageContext.drawImage(img,0,0);
+
+				    var c = document.createElement('canvas');
+
+				    var w = img.width, h = img.height;
+
+				    c.width = w;
+				    c.height = h;
+
+				    var ctx = c.getContext('2d');
+
+				    ctx.drawImage(img, 0, 0, w, h);
+				    var imageData = ctx.getImageData(0,0, w, h);
+				    var pixel = imageData.data;
+
+				    var r=0, g=1, b=2, a=3;
+				    
+				    for ( var p = 0; p < pixel.length; p+=4 ) {
+				      
+				      /*
+				      if (
+				          pixel[p+r] == 255 &&
+				          pixel[p+g] == 255 &&
+				          pixel[p+b] == 255) // if white then change alpha to 0
+				      {
+				      	pixel[p+a] = 0;
+				      	console.log(pixel);
+				      }
+				      */
+// TO-DO - create array of colors, increment as we come across duplicates. Use incremented values in array search to find most used colors				      
+
+				    }
+
+				    //ctx.putImageData(imageData,0,0);
+
+				    //return c.toDataURL('image/png');
+
+				    return true;
 
 				}
 
 			}
 
-			// there isn't a built in circle particle renderer 
-			// so we have to define our own. 
+		});
 
-			function particleRender( context ) {
+/*
 
-				// we get passed a reference to the canvas context
-				context.beginPath();
-				// and we just have to draw our shape at 0,0 - in this
-				// case an arc from 0 to 2Pi radians or 360º - a full circle!
-				context.arc( 0, 0, 1, 0,  Math.PI * 2, true );
-				context.fill();
-			};
+MISC TO-DOs
 
 
-			// moves all the particles dependent on mouse position
+## take frequency range in first 4 seconds as norm ? 
+## how to define first time period ? 
+	# when more than one pitch is encountered ?
+	# when loudness increases and stays consistent for 1-2 seconds?
 
-			function updateParticles() { 
+## evaluate frequency
+	# what is the standard range?
+# If the frequencies in the audio data window include a large range, 
+# the application will use a geometric composition with a large number of shapes. 
+# An audio data window with a short frequency range will use less complex geometric compositions. 
 
-				// iterate through every particle
-				for(var i=0; i<particles.length; i++) {
+## evaluate pitch
+	# how many pitches should we expect to encounter in a piece of music ?
+	# how many frequencies does each pitch encompass?
+# significant change calls ________ function - same as frequency above?
 
-					particle = particles[i]; 
+## evaluate tempo
+	# how much change in tempo is typical versus significant?
+# significant change calls imageTransition() ?
+# significant change calls geometricTransition() ? The faster the tempo the more complex the geometric image ?
 
-					// and move it forward dependent on the mouseY position. 
-					particle.position.z +=  mouseY * 0.1;
+## evaluate decibels / loudness
+	# what is the standard range?
+# Alternative if tempo determination is not accurate:
+	# The rate in which the imagery changes will be determined by the decibels of the audio. 
+	# High decibels will create faster image changes, while lower decibels will create more gradual image changes.
 
-					// if the particle is too close move it to the back
-					if(particle.position.z>1000) particle.position.z-=2000; 
+## how to determine when the music is changing (for example - moving from verse to chorus) ?
+## when to set a new norm to base decisions off ?
+	# look for significant changes that stay consistent for 4 seconds?
+		# use pitch for traditional pop songs ?
 
-				}
-
-			}
-
-		// called when the mouse moves
-			function onMouseMove( event ) {
-				// store the mouseX and mouseY position 
-				mouseX = event.clientX;
-				mouseY = event.clientY;
-
-			}
-		
+*/

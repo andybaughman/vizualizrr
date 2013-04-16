@@ -63,14 +63,10 @@ def processGeometricImages():
 		
 		if not fileName.startswith('.') and not fileName.startswith('Thumbs'):
 			
-			#print fileName
 			# Reset list for each image
 			geometricImageDetail = []
 
 			# Build file path
-			#finalFilePath = geometricImagePath
-			#finalFilePath += "\\"
-			#finalFilePath += fileName
 			finalFilePath = os.path.join(os.path.dirname(__file__), '..', 'static\images\geometric', fileName)
 
 			# Get image
@@ -170,8 +166,6 @@ def userImage():
 	dirList = os.listdir(userImagePath)
 	
 	# Build file path
-	#filePath = userImagePath
-	#filePath += "/"
 	filePath = os.path.join(os.path.dirname(__file__), '..', 'static\images\user')
 
 	# Set image range

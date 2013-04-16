@@ -7,11 +7,6 @@
 	<link href="http://fonts.googleapis.com/css?family=Alike" rel="stylesheet" type="text/css">
 	<link href="/static/css/bootstrap.css" rel="stylesheet" type="text/css">
 	<link href="/static/css/styles.css" rel="stylesheet" type="text/css">
-
-	<script src="/static/js/pitchdetector.js"></script>
-	<script src="/static/js/three.js"></script>
-
-	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.js"></script>
 </head>
 
 <body>
@@ -27,15 +22,14 @@
 
 	<div id="result"></div>
 
-	<canvas id="contours" width="675" height="675" style="border: 1px solid #333; background-color: transparent; position: absolute; left: 0;z-index: 3;"></canvas>
+	<canvas id="contours" width="1440" height="900"></canvas>
+	<canvas id="images" width="1440" height="900"></canvas>
+	<img src="/static/images/user/moon-large.jpg" width="1440" height="900" id="userImage" />
 
-	<canvas id="images" width="675" height="675" style="border: 1px solid #333; background-color: transparent; position: absolute; left: 0;z-index: 2;"></canvas>
-
-	<img src="/static/images/user/moon.jpg" width="675" height="675" style="position: absolute;left: 0;" id="userImage" />
-
-
+	<script src="/static/js/pitchdetector.js"></script>
+	<!--script src="/static/js/three.js"></script-->
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.js"></script>
 	<script>
-
 		$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
 
 		$(window).load(function() {
@@ -66,6 +60,8 @@
 			$.imageCanvas = document.getElementById( "images" );
             $.imageContext = $.imageCanvas.getContext( "2d" );
 
+            $.previousNote = "A";
+            
 // TO-DO - set loading image that is replace once init() is called
 
 
@@ -139,17 +135,30 @@
 				 */
 				function update() {
 					
-	            	// Get next user image
-// TO-DO - get all user images dynamically - set first to img in dom, save second+ in userImages object
-		            var img = new Image();
-		            img.src = "http://127.0.0.1:5000/static/images/user/sun.jpg";
+					$.note = document.getElementById('note').innerHTML;
+					
+					// Is the app picking up audio?
+					// If so, has the note value changed since the last iteration?
+					if(
+						$.note !== '--' 
+						&& 
+						$.note !== '-' 
+						&& 
+						$.note !== $.previousNote
+					) {
 
-		            img.onload = function(){
+		            	// Get next user image
+	// TO-DO - get all user images dynamically - set first to img in dom, save second+ in userImages object
+			            var img = new Image();
+			            img.src = "http://127.0.0.1:5000/static/images/user/sun-large.jpg";
 
-						drawContour();
+			            img.onload = function(){
 
-						updateImage( img );
+							drawContour();
 
+							updateImage( img );
+
+						}
 					}
 
 				}
@@ -173,15 +182,12 @@
 					// Get pitch value
 					var pitch = document.getElementById('pitch').innerHTML;
 
-					// Get note value
-					var note = document.getElementById('note').innerHTML;
-
 					// Set color temperature based on pitch
 					colorTemp = 'cool';
 // TO-DO - need to dynamically set pitch threshold, instead of using static 500 $.pitchThreshold ?
 					if(pitch > $.pitchThreshold) colorTemp = 'warm';
 
-// TO-DO - set color values based on colors within next (second, third, fourth, etc) image using Python?
+// TO-DO - set color values based on colors within next (second, third, fourth, etc) image using Python or JS - getDominantColors() below?
 					// Set color based on temperature
 					if(colorTemp == 'warm') {
 						// Generate warm color
@@ -204,54 +210,39 @@
 						colorB = getRandomInt( 205, 255 );
 					}
 
+					$.previousNote = $.note;
 
 					// Set opacity and contour
 					opacity = 0.28;
-					switch(note) {
+					switch($.note) {
 						case "A":
 						case "A#":
 							opacity = 0.84;
-							$.contourData.currentContour = 0;
-							$.contourData.imagesInPlace = 6;
 						break;
 						case "B":
 							opacity = 0.98;
-							$.contourData.currentContour = 1;
-							$.contourData.imagesInPlace = 5;
 						break;
 						case "C":
 						case "C#":
 							opacity = 0.14;
-							$.contourData.currentContour = 2;
-							$.contourData.imagesInPlace = 4;
 						break;
 						case "D":
 						case "D#":
 							opacity = 0.28;
-							$.contourData.currentContour = 3;
-							$.contourData.imagesInPlace = 3;
 						break;
 						case "E":
 						case "E#":
 							opacity = 0.42;
-							$.contourData.currentContour = 4;
-							$.contourData.imagesInPlace = 2;
 						break;
 						case "F":
 						case "F#":
 							opacity = 0.56;
-							$.contourData.currentContour = 5;
-							$.contourData.imagesInPlace = 1;
 						break;
 						case "G":
 						case "G#":
 							opacity = 0.70;
-							$.contourData.currentContour = 6;
-							$.contourData.imagesInPlace = 0;
 						break;
 					}
-
-					$.contourData.contoursInPlace++;
 
 					return "rgba("+colorR+","+colorG+","+colorB+","+opacity+")";
 		        
@@ -284,7 +275,7 @@
 
 
 		        /**
-		         * Increment current contour being used
+		         * Increment current contour being used and how many are in place
 		         */
 		        function setNextContour() {
 
@@ -296,7 +287,25 @@
 						// Clear all contours in context
 						$.contourContext.clearRect(0, 0, $.contourCanvas.width, $.contourCanvas.height);
 
+					} else {
+
+						$.contourData.contoursInPlace++;
+
 					}
+
+					// Track the number of image updates made 
+					// Reset if necessary
+					if($.contourData.currentContour >= ($.contourData.contourArray[0].length - 1)) {
+
+                    	//$.contourData.imagesInPlace = 0;
+                    	$.contourData.currentContour = 0;
+                    
+                    } else {
+                    
+                    	//$.contourData.imagesInPlace++;
+                    	$.contourData.currentContour++;
+                    
+                    }
 
 		        }
 
@@ -312,10 +321,7 @@
 					
 					}
 
-// TO-DO - update contour retrieval
 					var contourLength = $.contourData.contourArray[0].length - 1;
-
-					//var randomContour = $.contourData.imagesInPlace;//getRandomInt( 0, contourLength );
 
                 	$.imageContext.save();
 
@@ -362,7 +368,7 @@
 	        	function getDominantColors() {
 
 	        		var img = new Image();
-		            img.src = "http://127.0.0.1:5000/static/images/user/sun.jpg";
+		            img.src = "http://127.0.0.1:5000/static/images/user/sun-large.jpg";
 
 		            //$.imageContext.drawImage(img,0,0);
 
@@ -452,4 +458,3 @@ MISC TO-DOs
 
 </body>
 </html>
-
