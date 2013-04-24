@@ -46,10 +46,11 @@ def file():
     if request.method == 'POST':
         
         file = request.files['file']
+
         
         if file:
             
-            fileName = 'vizualizr.file'
+            fileName = 'vizualizr.mp3'
             
             try:
                 os.remove(os.path.join(settings.UPLOAD_FOLDER, fileName))
@@ -57,6 +58,7 @@ def file():
                 pass
 
             file.save(os.path.join(settings.UPLOAD_FOLDER, fileName))
+
             return render_template("pitchfinder.html") 
             #,contourList=contourList[0][1] #map(json.dumps,contourList) #json.dumps([1,2,3])
            
@@ -65,7 +67,7 @@ def file():
 
 @app.route('/vizualizrfile')
 def filereturn():
-    return send_file('uploads/vizualizr.file',cache_timeout=1)
+    return send_file('uploads/vizualizr.mp3', cache_timeout=1)
 
 @app.route('/contourz')
 def contourz():
@@ -74,12 +76,10 @@ def contourz():
 
 @app.route('/')
 def home():
-    return render_template("fileopen.html")
+    return render_template("pitchfinder.html")
 
 #if __name__ == '__main__':
 #    app.run(port=8080, debug=True)
-
-
 
 
 #
