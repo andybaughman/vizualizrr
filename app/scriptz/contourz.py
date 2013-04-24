@@ -20,8 +20,8 @@ import cv2
 ## -------------------------------------------------------
 
 ## set global for image being manipulated to keep the file persistant?
-geometricImagePath = os.path.join(os.path.dirname(__file__), '..', 'static\images\geometric')
-userImagePath = os.path.join(os.path.dirname(__file__), '..', 'static\images\user')
+geometricImagePath = os.path.join(os.path.dirname(__file__), '..', 'static/images/geometric')
+userImagePath = os.path.join(os.path.dirname(__file__), '..', 'static/images/user')
 
 
 # set lists for geometric image detail
@@ -67,7 +67,7 @@ def processGeometricImages():
 			geometricImageDetail = []
 
 			# Build file path
-			finalFilePath = os.path.join(os.path.dirname(__file__), '..', 'static\images\geometric', fileName)
+			finalFilePath = os.path.join(os.path.dirname(__file__), '..', 'static/images/geometric', fileName)
 
 			# Get image
 			im = cv2.imread(finalFilePath) 
@@ -166,7 +166,7 @@ def userImage():
 	dirList = os.listdir(userImagePath)
 	
 	# Build file path
-	filePath = os.path.join(os.path.dirname(__file__), '..', 'static\images\user')
+	filePath = os.path.join(os.path.dirname(__file__), '..', 'static/images/user')
 
 	# Set image range
 	dirListLen = len(dirList) - 1 # subtract 1 to account for 0 based keys
