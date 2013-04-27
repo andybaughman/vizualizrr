@@ -47,16 +47,20 @@ def file():
         
         file = request.files['file']
         
+        uploaded_file = request.files['file']
+        #print uploaded_file
+
         if file:
             
-            fileName = 'vizualizr.file'
+            fileName = file.filename #'vizualizr.file'
             
-            try:
-                os.remove(os.path.join(settings.UPLOAD_FOLDER, fileName))
-            except:
-                pass
+            #try:
+            #    os.remove(os.path.join(settings.UPLOAD_FOLDER, fileName))
+            #except:
+            #    pass
 
             file.save(os.path.join(settings.UPLOAD_FOLDER, fileName))
+
             return render_template("pitchfinder.html") 
             #,contourList=contourList[0][1] #map(json.dumps,contourList) #json.dumps([1,2,3])
            
@@ -65,7 +69,13 @@ def file():
 
 @app.route('/vizualizrfile')
 def filereturn():
-    return send_file('uploads/vizualizr.file',cache_timeout=1)
+    #return file()
+
+    return send_file('uploads/The_Impossebulls_-_05_-_AmeriKan_Idle_Instrumental.mp3', cache_timeout=1) #blind_willie.mp3
+    
+    #The_Impossebulls_-_05_-_AmeriKan_Idle_Instrumental.mp3
+    #piano-slow-songs-romeo-and-juliet-love-theme-kissing-you-instrumental1.mp3
+    #self.request.params[<form element name with file>].filename
 
 @app.route('/contourz')
 def contourz():

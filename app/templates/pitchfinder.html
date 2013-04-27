@@ -26,8 +26,7 @@
 	<canvas id="images" width="1440" height="900"></canvas>
 	<img src="/static/images/user/moon-large.jpg" width="1440" height="900" id="userImage" />
 
-	<script src="/static/js/pitchdetector.js"></script>
-	<!--script src="/static/js/three.js"></script-->
+	<script src="/static/js/pitchdetector.js"></script
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.js"></script>
 	<script>
 		$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
@@ -61,7 +60,7 @@
             $.imageContext = $.imageCanvas.getContext( "2d" );
 
             $.previousNote = "A";
-            
+
 // TO-DO - set loading image that is replace once init() is called
 
 

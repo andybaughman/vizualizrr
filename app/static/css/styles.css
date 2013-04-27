@@ -1,18 +1,51 @@
 * { margin: 0; }
-html, body { font: 10pt 'Alike', sans-serif; height: 100%; background: #000000;}
-#note { font-size: 10px; }
-.droptarget { background-color: #348781}
-div.confident { color: black; }
-div.vague { color: lightgrey; }
-#note { display: inline-block; width: 1em; text-align: left;}
-#output { position: absolute; width: 300px; height: 100px; }
-#flat { display: none; }
-#sharp { display: none; }
-.flat #flat { display: inline; }
-.sharp #sharp { display: inline; }
+
+html, body { 
+	font: 10pt 'Alike', sans-serif; 
+	height: 100%; 
+	background: #000000;}
+
+#note { 
+	font-size: 10px; }
+
+.droptarget { 
+	background-color: red;/*#348781*/}
+
+div.confident { 
+	color: black; }
+
+div.vague { 
+	color: lightgrey; }
+
+#note { 
+	display: inline-block; 
+	width: 1em; 
+	text-align: left;}
+
+#output { 
+	position: absolute; 
+	width: 300px; 
+	height: 100px; }
+
+#flat { 
+	display: none; }
+
+#sharp { 
+	display: none; }
+
+.flat #flat { 
+	display: inline; }
+
+.sharp #sharp { 
+	display: inline; }
+
 #detector {
+	border: 1px solid #ccc;
 	text-align: right;
-	margin-right: 10px;}
+	margin-right: 10px;
+	height: 50px;
+	display: block;}
+
 .transparent {
 	zoom: 1;
 	filter: alpha(opacity=50);
@@ -22,7 +55,9 @@ canvas, #userImage {
 	background-color: transparent; 
 	position: absolute; 
 	left: 0;}
+
 #contours {
 	z-index: 3;}
+
 #images {
 	z-index: 2;}
