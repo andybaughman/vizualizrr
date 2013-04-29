@@ -82,8 +82,12 @@ def contourz():
     # call returnContourz() in scriptz.contourz
     return returnContourz()
 
-if __name__ == '__main__':
-    app.run(port=8080, debug=True)
+@app.route('/')
+def home():
+    return render_template("pitchfinder.html")
+
+#if __name__ == '__main__':
+#    app.run(port=8080, debug=True)
 
 
 

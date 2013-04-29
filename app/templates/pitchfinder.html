@@ -3,30 +3,56 @@
 
 <head>
 	<title>Vizualizr</title>
-
-	<link href="http://fonts.googleapis.com/css?family=Alike" rel="stylesheet" type="text/css">
+	
 	<link href="/static/css/bootstrap.css" rel="stylesheet" type="text/css">
 	<link href="/static/css/styles.css" rel="stylesheet" type="text/css">
 </head>
 
 <body>
 
-	<button onclick="this.innerText = togglePlayback()">use demo audio</button>
-	<button onclick="toggleLiveInput()">use live input</button>
+<div id="dropbox">
 
-	<div id="detector" class="vague">
-		<div class="pitch"><span id="pitch" onChange="function2(this)">--</span>Hz</div>
-		<div class="note"><span id="note">--</span></div>   
-		<div id="detune"><span id="detune_amt">--</span><span id="flat">cents &#9837;</span><span id="sharp">cents &#9839;</span>
+	<div class="navbar-inner">
+	    
+	    <div class="container">
+	     
+		    <div class="row-fluid">
+
+			    <div class="span8">
+			      	<div class="btn-group">
+			      		<button class="btn btn-mini btn-custom" onclick="this.innerText = togglePlayback()">use demo audio</button>
+				 		<button class="btn btn-mini btn-custom" onclick="toggleLiveInput()">use live input</button>
+					</div>
+					
+					<span id="droplabel">Drop file here...</span>
+				</div>
+
+
+				<div id="detector" class="vague">
+					<div class="pitch"><span id="pitch" onChange="function2(this)">--</span>Hz</div>
+					<div class="note"><span id="note">--</span></div>   
+					<div id="detune"><span id="detune_amt">--</span><span id="flat">cents &#9837;</span><span id="sharp">cents &#9839;</span></div>
+				</div>
+
+			</div>
+
+			<div id="result"></div>
+
+			<canvas id="contours" width="1440" height="900"></canvas>
+			<canvas id="images" width="1440" height="900"></canvas>
+
+			<img src="/static/images/user/moon-large.jpg" width="1440" height="900" id="userImage" />
+
+		</div>
+
 	</div>
 
-	<div id="result"></div>
+</div>
 
-	<canvas id="contours" width="1440" height="900"></canvas>
-	<canvas id="images" width="1440" height="900"></canvas>
-	<img src="/static/images/user/moon-large.jpg" width="1440" height="900" id="userImage" />
 
-	<script src="/static/js/pitchdetector.js"></script
+
+	<script src="/static/js/pitchdetector.js"></script>
+	
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.js"></script>
 	<script>
 		$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
@@ -40,6 +66,7 @@
 
 			// Initialize globals
 
+			var url;
 			// Unset contourData for each page load
 			$.contourData = undefined;
 			// Initialize contourData object
@@ -62,7 +89,6 @@
             $.previousNote = "A";
 
 // TO-DO - set loading image that is replace once init() is called
-
 
 			/**
 			 * Get contours from Python
@@ -145,6 +171,9 @@
 						&& 
 						$.note !== $.previousNote
 					) {
+
+		            	$("#userImage").fadeIn();
+		            	//$("#dropbox .span8").fadeOut();
 
 		            	// Get next user image
 	// TO-DO - get all user images dynamically - set first to img in dom, save second+ in userImages object
@@ -453,7 +482,117 @@ MISC TO-DOs
 
 */
 
-	</script>
+
+/**
+ * Drag and drop audio file
+ */	
+
+$(".row-fluid").hover( function(){
+	$(this).css('display','block');
+	$("#dropbox .span8").fadeIn();
+});
+
+var dropbox = document.getElementById("dropbox")
+ 
+// init event handlers
+dropbox.addEventListener("dragnter", dragEnter, false);
+dropbox.addEventListener("dragexit", dragExit, false);
+dropbox.addEventListener("dragover", dragOver, false);
+dropbox.addEventListener("drop", drop, false);
+
+
+function dragEnter(evt) {
+	evt.stopPropagation();
+ 	evt.preventDefault();
+}
+
+
+function dragOver(evt) {
+	evt.stopPropagation();
+	evt.preventDefault();
+}
+
+
+function dragExit(evt) {
+	evt.stopPropagation();
+	evt.preventDefault();
+}
+
+
+function drop(evt) {
+	evt.stopPropagation();
+	evt.preventDefault();
+ 
+	var files = evt.dataTransfer.files;
+	var count = files.length;
+ 
+	// Only call the handler if 1 or more files was dropped.
+	if (count > 0)
+		handleFiles(files);
+}
+
+
+function handleFiles(files) {
+
+	var file = files[0];
+ 
+	document.getElementById("droplabel").innerHTML = "Processing " + file.name;
+	 
+	var reader = new FileReader();
+	 
+	// init the reader event handlers
+	reader.onload = handleReaderLoad;
+	 
+	// begin the read operation
+	url = reader.readAsDataURL(file);
+	FileUpload(file)
+}
+
+
+function handleReaderLoad(evt) {
+	var img = document.getElementById("preview");
+}
+
+
+function errorHandler(err){
+	
+	var msg = 'An error occured: ';
+	
+	switch (err.code) {
+		case FileError.NOT_FOUND_ERR:
+			msg += 'File or directory not found';
+		break;
+		case FileError.NOT_READABLE_ERR:
+			msg += 'File or directory not readable';
+		break;
+		case FileError.PATH_EXISTS_ERR:
+			msg += 'File or directory already exists';
+		break;
+		case FileError.TYPE_MISMATCH_ERR:
+			msg += 'Invalid filetype';
+		break;
+		default:
+			msg += 'Unknown Error';
+		break;
+	};
+	console.log(msg);
+};
+
+
+function FileUpload(file) {
+  
+  var xhr = new XMLHttpRequest();
+ 
+  xhr.open("POST","/upload",true);
+ 
+  var formData = new FormData();
+ 
+  formData.append("file", file);
+ 
+  xhr.send(formData);
+
+}
+</script>
 
 </body>
 </html>
